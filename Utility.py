@@ -5,8 +5,14 @@ import functools
 import statistics
 from ctypes import windll, Structure, c_long, byref
 import unicodedata
+import time
+import random
+
+import requests
 
 import TimeUtility as TU
+
+# cSpell: words backslashreplace surrogateescape xmlcharrefreplace surrogatepass namereplace
 
 ########################################################################################################################
 ## Print
@@ -68,7 +74,7 @@ def getListIndices(lt, s=0):
 
 
 # リストの中身を等間隔にした文字列にする。表示させたい時に使う。
-def listToFormatedString(lt):
+def listToFormattedString(lt):
   if len(lt) == 0:
     return "[]"
   maxLen = len(str(max(lt)))
@@ -96,6 +102,11 @@ def printDiffStatistics(lt1, lt2, fmt=" .10f"):
   print(f"母標準偏差: {statistics.pstdev(lt1):{fmt}}, {statistics.pstdev(lt2):{fmt}}, {statistics.pstdev(lt1) - statistics.pstdev(lt2):{fmt}}")
   print(f"母分散    : {statistics.pvariance(lt1):{fmt}}, {statistics.pvariance(lt2):{fmt}}, {statistics.pvariance(lt1) - statistics.pvariance(lt2):{fmt}}")
 
+
+# def printMembers(obj):
+#   members = inspect.getmembers(obj)
+#   for member in members:
+#     print("{}".format(toString(member)))
 
 ########################################################################################################################
 ## Utility
@@ -222,6 +233,13 @@ def replaceLineBreak(string, repl="_"):
   return regex.sub(repl, string)
 
 
+# def toString(tup):
+#   str = ""
+#   for v in tup:
+#     str += "{}, ".format(v)
+#   str += "\n"
+#   return str
+
 ########################################################################################################################
 ## file
 ########################################################################################################################
@@ -262,6 +280,11 @@ def checkFileName(path, makeDir=False):
     if not os.path.exists(name):
       return name
     i += 1
+
+
+def escapeFileName(path, repl="_"):
+  regex = re.compile("[/:*?\"<>|.]")
+  return regex.sub(repl, path)
 
 
 ################################################################################
@@ -396,3 +419,79 @@ def splitEaWidth(string, width):
     if w >= width:
       return result, string[i + 1:]
   return string, ""
+
+
+################################################################################
+## Func
+################################################################################
+
+
+# Unpacking Argument Lists
+# Noneは渡せない
+def unpackFunc(func, arg=None):
+  if arg is None:
+    return func()
+  if isinstance(arg, dict):
+    return func(**arg)
+  elif hasattr(arg, "__iter__"):
+    return func(*arg)
+  else:
+    return func(arg)
+
+
+# funcがvalueを返すまで一定時間待つ
+def waitFor(func, funcArgs=None, ret=True, wait=5, interval=0.5):
+  start = time.time()
+  result = unpackFunc(func, funcArgs)
+  while result != ret:
+    if time.time() - start > wait:
+      return None
+    time.sleep(interval)
+    result = unpackFunc(func, funcArgs)
+  return result
+
+
+def returnValueIfNone(target, value=0):
+  if target is None:
+    return value
+  return target
+
+
+def subLimitZero(x, y):
+  x -= y
+  if x < 0:
+    return 0
+  return x
+
+
+def outputImage(path, imgData):
+  with open(path, mode="wb") as file:
+    file.write(imgData)
+
+
+def getImage(url, headers, session=None):
+  if session is None:
+    session = requests.session()
+  for _ in range(5):
+    try:
+      res = session.get(url, timeout=60, headers=headers)
+      return res.content
+    except Exception as e:
+      pass
+  return None
+
+
+def deleteSpace(string, char=""):
+  r = re.compile(" ")
+  return r.sub(char, string)
+
+
+def escapePathName(string, char="_"):
+  r1 = re.compile(r'[\\/:*?"<>|]')
+  r2 = re.compile(r'[.]')
+  temp = r1.sub(char, string)
+  return r2.sub("", temp)
+
+
+def getRandom(minN, maxN):
+  return random.randrange(minN, maxN)
