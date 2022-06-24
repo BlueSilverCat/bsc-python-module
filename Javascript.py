@@ -109,7 +109,7 @@ GetSalaryGirls = """\
 let result = []
 for (const [key, value] of Object.entries(girlsDataList)) {
   if (value.own == true && value.pay_in == 0) {
-    result.push([value.id_girl, value.name])
+    result.push([value.id_girl, value.name, value.class, value.element])
   }
 }
 return result
@@ -123,6 +123,7 @@ return player_gems_amount
 # arguments[0].dispatchEvent(inputEvent)
 
 Input = """\
+arguments[arguments.length-1]();
 arguments[0].value = arguments[1];
 arguments[0].dispatchEvent(new KeyboardEvent('keyup', {keyCode: 13, key: 'Enter'}));
 """

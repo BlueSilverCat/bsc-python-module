@@ -1,7 +1,9 @@
 import time
 import functools
-import TimeUtility
 import gc
+
+import TimeUtility as TU
+import Utility as U
 
 
 # 関数名と起動時刻の表示
@@ -9,7 +11,7 @@ def printName(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
-    print(f"{func.__name__}: {TimeUtility.getNowTime()}")
+    print(f"{func.__name__}: {TU.getNowTime()}")
     result = func(*args, **kwargs)
     return result
 
@@ -17,7 +19,7 @@ def printName(func):
 
 
 # 実行時間の表示
-def stopwatchPrint(func):
+def printExecutionTime(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):
@@ -27,7 +29,7 @@ def stopwatchPrint(func):
     result = func(*args, **kwargs)
     end = time.perf_counter()
     diff = end - start
-    print(f"{func.__name__}: {TimeUtility.secToTime(diff)}({diff:.3f})")
+    print(f"{func.__name__}: {TU.secToTime(diff)}({diff:.3f})")
     gc.enable()
     return result
 
@@ -40,12 +42,12 @@ def stopwatchPrintSE(func):
   def wrapper(*args, **kwargs):
     gc.collect()
     gc.disable()
-    print(f"{TimeUtility.getNowTime()} - Start {func.__name__}")
+    print(f"{TU.getNowTime()} - Start {func.__name__}")
     start = time.perf_counter()
     result = func(*args, **kwargs)
     end = time.perf_counter()
     diff = end - start
-    print(f"{TimeUtility.getNowTime()} - End   {func.__name__} {TimeUtility.secToTime(diff)}({diff:.3f})")
+    print(f"{TU.getNowTime()} - End   {func.__name__} {TU.secToTime(diff)}({diff:.3f})")
     gc.enable()
     return result
 
@@ -118,5 +120,32 @@ def printFunc(func):
     print(f"name: {func.__name__}, args:{args}, kwargs:{kwargs}, result: {result}")
     if result is not None:
       return result
+
+  return wrapper
+
+
+def printStartEndTime(func):
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    U.printTime(f"start: {func.__name__}")
+    result = func(*args, **kwargs)
+    U.printTime(f"end: {func.__name__}")
+    if result is not None:
+      return result
+
+  return wrapper
+
+
+def getExecuteTime(func):
+
+  @functools.wraps(func)
+  def wrapper(*args, **kwargs):
+    start = time.time()
+    result = func(*args, **kwargs)
+    end = time.time()
+    if result is not None:
+      return [end - start, result]
+    return end - start
 
   return wrapper

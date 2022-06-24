@@ -10,7 +10,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 # from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import (UnexpectedAlertPresentException, NoAlertPresentException, ElementNotVisibleException, TimeoutException, NoSuchElementException, ElementClickInterceptedException, ElementNotInteractableException)
+from selenium.common.exceptions import (
+  UnexpectedAlertPresentException,
+  NoAlertPresentException,
+  ElementNotVisibleException,
+  TimeoutException,
+  NoSuchElementException,
+  ElementClickInterceptedException,
+  ElementNotInteractableException,
+)
 
 import Utility as U
 import Javascript as JS
@@ -107,8 +115,7 @@ class CheckState():
 
 def focusElement(element, preventScroll=False):
   js = """\
-  element = arguments[0]
-  element.focus({"preventScroll": arguments[1]})
+  arguments[0].focus({"preventScroll": arguments[1]})
   """
   element.parent.execute_script(js, element, preventScroll)
 
@@ -132,8 +139,7 @@ def scrollIntoView(element, block="start", inline="nearest"):
 
 def getParentElement(element):
   js = """\
-  element = arguments[0]
-  return element.parentElement
+  return arguments[0].parentElement
   """
   return element.parent.execute_script(js, element)
 
@@ -293,18 +299,16 @@ def findElements(driver, locator=(), element=None, state="enabled"):
   return filterElements(elements, state)
 
 
-def click(element, scroll=False, focus=True, ignore=False, wait=1):
+def click(element, scroll=False, focus=True, ignore=False):
   try:
     if scroll == True:
-      result = scrollIntoView(element, block="start")
-      if result == False:
-        element.location_once_scrolled_into_view
+      scrollIntoView(element, block="start")
+      # if result == False:
+      #   element.location_once_scrolled_into_view
     if focus == True:
-      focusElement(element, preventScroll=True)
+      focusElement(element, preventScroll=not scroll)
     element.click()
-
   except (ElementClickInterceptedException, ElementNotInteractableException):  #cspell: disable-line
-    time.sleep(wait)
     clickJavaScript(element)
   except Exception as e:
     if ignore == True:
@@ -334,22 +338,31 @@ def getElementText(element, content=True):
 #   print(f"{getNowTimeT()}: {string}")
 
 
+def printDebug(debug, string):
+  if debug:
+    U.printTime(string)
+
+
 # retry はclickを繰り返すのであって、探すのを繰り返すわけではない
 # enabledをretryする時は、よく考えないといけない
-def findClick(driver, locator=(), element=None, ignore=False, state="clickable", wait=30, interval=0.5, scroll=False, focus=True, retry=0):
-  #logger.info(f"findClick: {by}, {value}, {must}, {ignore}, {state}, {wait}, {interval}, {scroll}, {focus}, {retry}")
+def findClick(driver, locator=(), element=None, ignore=False, state="clickable", wait=30, interval=0.5, scroll=False, focus=True, retry=0, debug=False):
+  # printDebug(debug, "start findClick")
   try:
     element = findElement(driver, locator=locator, element=element, state=state, ignore=ignore, wait=wait, interval=interval)
     for _ in range(retry + 1):
-      #logger.debug(f"findClick: {elementInfo(element)}")
+      # printDebug(debug, f"findClick1 {_}: {element}")
       if element is not None:
         if retry == 0:
           click(element, scroll=scroll, focus=focus, ignore=ignore)
           return
         else:
+          # printDebug(debug, f"findClick {_}: start click")
           click(element, scroll=scroll, focus=focus, ignore=True)
+          # printDebug(debug, f"findClick {_}: end click")
       time.sleep(interval)
-      element = findElement(driver, locator=locator, element=element, state=state, ignore=True, wait=0.5, interval=0.1)
+      # printDebug(debug, f"findClick2 {_}: {element}")
+      element = findElement(driver, locator=locator, element=element, state=state, ignore=True, wait=0, interval=0)
+      # printDebug(debug, f"findClick3 {_}: {element}")
       if element is None:
         return
 

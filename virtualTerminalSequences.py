@@ -1,4 +1,7 @@
-from ctypes import windll, wintypes, byref
+import os
+from ctypes import wintypes, byref
+if os.name == "nt":
+  from ctypes import windll
 
 ####################################################################################################
 # VirtualTerminalSequences
@@ -57,10 +60,10 @@ class VTS:
   ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
   ENABLE_LVB_GRID_WORLDWIDE = 0x0010
 
-  # REMOVE_RESET = re.compile(RESET)
-
   @staticmethod
   def enable():
+    if os.name != "nt":
+      return True
     hOut = windll.kernel32.GetStdHandle(VTS.STD_OUTPUT_HANDLE)
     if hOut == VTS.INVALID_HANDLE_VALUE:
       return False
@@ -78,12 +81,20 @@ class VTS:
     print(VTS.RESET)
 
   @staticmethod
+  def isTupleOrList(x):
+    return isinstance(x, tuple) or isinstance(x, list)
+
+  @staticmethod
+  def printColored(msg, fc="DEFAULT_COLOR", bc="DEFAULT_COLOR"):
+    print(VTS.getColorMessage(msg, fc, bc))
+
+  @staticmethod
   def getForegroundColor(value="DEFAULT_COLOR"):
     if isinstance(value, str):
       return VTS._getForegroundColorName(value)
     elif isinstance(value, int):
       return VTS._getForegroundColorNumber(value)
-    elif isinstance(value, tuple) and len(value) == 3:
+    elif VTS.isTupleOrList(value) and len(value) == 3:
       return VTS._getForegroundColorRGB(*value)
     else:
       return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
@@ -94,7 +105,7 @@ class VTS:
       return VTS._getBackgroundColorName(value)
     elif isinstance(value, int):
       return VTS._getBackgroundColorNumber(value)
-    elif isinstance(value, tuple) and len(value) == 3:
+    elif VTS.isTupleOrList(value) and len(value) == 3:
       return VTS._getBackgroundColorRGB(*value)
     else:
       return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
@@ -134,8 +145,8 @@ class VTS:
     return VTS.BACKGROUND_COLORS["DEFAULT_COLOR"]
 
   @staticmethod
-  def getColorMessage(msg, foreground="DEFAULT_COLOR", background="DEFAULT_COLOR", reset=True):
-    msg = f"{VTS.getForegroundColor(foreground)}{VTS.getBackgroundColor(background)}{msg}"
+  def getColorMessage(msg, fc="DEFAULT_COLOR", bc="DEFAULT_COLOR", reset=True):
+    msg = f"{VTS.getForegroundColor(fc)}{VTS.getBackgroundColor(bc)}{msg}"
     if not reset:
       return msg
     return f"{msg}{VTS.RESET}"
@@ -160,3 +171,11 @@ class VTS:
     if not reset:
       return msg
     return f"{msg}{VTS.RESET}"
+
+  @staticmethod
+  def testColor():
+    for kBc, vBc in VTS.BACKGROUND_COLORS.items():
+      for kFc, vFc in VTS.FOREGROUND_COLORS.items():
+        string = VTS.getColorMessage(f"{kFc:<14}, {kBc:<14}", kFc, kBc)
+        print(string)
+    VTS.reset()

@@ -70,3 +70,9 @@ def secToTime(sec):
   if day > 0:
     output = f"{day:.0f}" + output
   return output
+
+
+# 時刻差がdelta以上ならばTrue
+# datetime.timedelta(hours=9)は、JST 日本標準時 UTC+0900
+def compareTime(dt1, dt2, delta, timeZone=datetime.timedelta(hours=9)):
+  return abs(dt1 - dt2) > abs(delta)

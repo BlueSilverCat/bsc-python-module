@@ -11,8 +11,11 @@ import random
 import requests
 
 import TimeUtility as TU
+from virtualTerminalSequences import VTS
 
 # cSpell: words backslashreplace surrogateescape xmlcharrefreplace surrogatepass namereplace
+
+VTS.enable()
 
 ########################################################################################################################
 ## Print
@@ -31,9 +34,15 @@ def printList(lst):
     print(f"{i:>{maxLen}}: {lst[i]}")
 
 
-def printDict(d):
-  for key, value in enumerate(d):
-    print(f"{key}: {value}")
+def printDict(d, color=False):
+  if color:
+    VTS.enable()
+
+    for key, value in d.items():
+      print(f"{VTS.getColorMessage(key, fc='black', bc='white')}: {VTS.getColorMessage(value, fc='white', bc='black')}")
+  else:
+    for key, value in d.items():
+      print(f"{key}: {value}")
 
 
 def printDir(obj):
@@ -262,7 +271,8 @@ def getLineBreak(string):
 def makeDir(path):
   if not os.path.exists(path):
     os.makedirs(path)
-  return os.path.abspath(path)
+    return True
+  return False
 
 
 def checkFileName(path, makeDir=False):
