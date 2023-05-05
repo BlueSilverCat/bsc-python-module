@@ -3,15 +3,18 @@ import re
 import os
 import functools
 import statistics
-from ctypes import windll, Structure, c_long, byref
+from ctypes import Structure, c_long, byref
+if os.name == "nt":
+  from ctypes import windll
 import unicodedata
 import time
 import random
 
 import requests
+import psutil
 
 import TimeUtility as TU
-from virtualTerminalSequences import VTS
+from VirtualTerminalSequences import VTS
 
 # cSpell: words backslashreplace surrogateescape xmlcharrefreplace surrogatepass namereplace
 
@@ -27,22 +30,57 @@ def printTime(string):
   print(f"{TU.getNowTime()}: {string}")
 
 
-def printList(lst):
-  length = len(lst)
+def printList(lt, color=True):
+  length = len(lt)
   maxLen = len(str(length))
-  for i in range(length):
-    print(f"{i:>{maxLen}}: {lst[i]}")
-
-
-def printDict(d, color=False):
   if color:
     VTS.enable()
+  for i, x in enumerate(lt):
+    if color:
+      message = [
+        (f"{i:>{maxLen}}", "black", "white"),
+        (" : ", "", ""),
+        (f"{x}", "", ""),
+      ]
+      VTS.printColoredList(message)
+    else:
+      print(f"{i:>{maxLen}} : {x}")
 
-    for key, value in d.items():
-      print(f"{VTS.getColorMessage(key, fc='black', bc='white')}: {VTS.getColorMessage(value, fc='white', bc='black')}")
-  else:
-    for key, value in d.items():
-      print(f"{key}: {value}")
+
+def printDict(d, color=True, fc="black", bc="gray", end="\n", indent=0):
+  if color:
+    VTS.enable()
+  maxLen = getMaxLen(d)
+  for key, value in d.items():
+    if color:
+      message = [
+        (f" " * indent, "", ""),
+        (f"{key:<{maxLen}}", fc, bc),
+        (" : ", "", ""),
+        (f" {value}", "", ""),
+      ]
+      VTS.printColoredList(message, end=end)
+    else:
+      print(f"{' ' * indent}{key:<{maxLen}}: {value}", end=end)
+  if end != "\n":
+    print("")
+
+
+def printDictList(lt, color=True, lfc="gray", lbc="black", bfc="black", bbc="gray", end="\n"):
+  length = len(lt)
+  maxLen = len(str(length))
+  if color:
+    VTS.enable()
+  for i, x in enumerate(lt):
+    if color:
+      message = [
+        (f"{i:>{maxLen}}", lfc, lbc),
+        (" : ", "", ""),
+      ]
+      VTS.printColoredList(message)
+    else:
+      print(f"{i:>{maxLen}}:")
+    printDict(x, color, indent=2, fc=bfc, bc=bbc, end=end)
 
 
 def printDir(obj):
@@ -50,10 +88,10 @@ def printDir(obj):
     print(f"{attr}: {getattr(obj, attr)}")
 
 
-def printMember(v, re=None):
+def printMember(v, pat=None):
   members = dir(v)
   for member in members:
-    if re and re:
+    if pat and pat.search(member) is not None:
       print(member)
     else:
       print(member)
@@ -64,7 +102,7 @@ def printType(x):
 
 
 def printLen(x):
-  print(f"{len(x)}: {x}")
+  print(f"{len(x):3}: {x}")
 
 
 # debug
@@ -130,6 +168,8 @@ class POINT(Structure):
 
 
 def getMousePosition():
+  if os.name != "nt":
+    return None
   pt = POINT()
   windll.user32.GetCursorPos(byref(pt))
   # return {"x": pt.x, "y": pt.y}
@@ -146,20 +186,48 @@ def uniqueFilter(lt):
   return [lt[i] for i in range(length) if lt.index(lt[i]) == i]
 
 
-def getSameIndices(lst, value, fn=None):
+def uniqueFilter2(lt, fn=None):
+  work = lt[:]
   result = []
-  length = len(lst)
+  while work:
+    t = work.pop(0)
+    result.append(t)
+    if fn is None:
+      work = [x for x in work if x != t]
+    else:
+      work = [x for x in work if not fn(x, t)]
+  return result
+
+
+def duplicateFilter(lt, fn=None):
+  work = lt[:]
+  result = []
+  n = 0
+  while work:
+    t = work.pop(0)
+    for x in work:
+      n += 1
+      if fn is None and x == t or fn is not None and fn(x, t):
+        work.remove(x)
+        result.append(x)
+  print(n)
+  return result
+
+
+def getSameIndices(lt, value, fn=None):
+  result = []
+  length = len(lt)
   for i in range(length):
-    if fn and fn(lst[i], value):
+    if fn is None and lt[i] == value:
       result.append(i)
-    if fn is None and lst[i] == value:
+    elif fn and fn(lt[i], value):
       result.append(i)
   return result
 
 
-def deleteDuplicate(lst, fn=None):
+def deleteDuplicate(lt, fn=None):
   indices = []
-  result = lst[:]
+  result = lt[:]
   i = 0
   while i < len(result):
     indices = getSameIndices(result, result[i], fn)
@@ -169,23 +237,36 @@ def deleteDuplicate(lst, fn=None):
 
 
 # リストから指定したインデックスのリストを返す
-def includeIndices(lst, indices):
-  return [x for i, x in enumerate(lst) if i in indices]
+def includeIndices(lt, indices):
+  return [x for i, x in enumerate(lt) if i in indices]
 
 
 # リストから指定したインデックスを除いたリストを返す
-def excludeIndices(lst, indices):
-  return [x for i, x in enumerate(lst) if i not in indices]
+def excludeIndices(lt, indices):
+  return [x for i, x in enumerate(lt) if i not in indices]
 
 
 # リストから指定した値を除いたリストを返す
-def excludeValues(lst, values):
-  return [v for i, v in enumerate(lst) if v not in values]
-  # return list(filter(lambda x: x not in values, lst))
+def excludeValues(lt, values):
+  return [v for i, v in enumerate(lt) if v not in values]
+  # return list(filter(lambda x: x not in values, lt))
 
 
-def filterIndex(condition, lst):
-  return [i for i, x in enumerate(lst) if condition(i, x)]
+def filterIndex(condition, lt):
+  return [i for i, x in enumerate(lt) if condition(i, x)]
+
+
+# listの要素の最大の長さを返す
+def getMaxLen(lt):
+  return max(map(len, lt))
+
+
+# indexが存在しない場合にdefaultを返す。
+def getFromList(lt, index, default=None):
+  try:
+    return lt[index]
+  except IndexError:
+    return default
 
 
 ########################################################################################################################
@@ -249,6 +330,19 @@ def replaceLineBreak(string, repl="_"):
 #   str += "\n"
 #   return str
 
+
+# 複数行にわたる文字列を結合する
+def concatenateMultiLines(string1, string2, con=" ", sep="\n"):
+  s1 = string1.split(sep)
+  s2 = string2.split(sep)
+  length = len(s1) if len(s1) > len(s2) else len(s2)
+  output = ""
+  ls1 = getMaxLen(s1)
+  for i in range(length):
+    output += f"{getFromList(s1, i, ''): <{ls1}}{con}{getFromList(s2, i, '')}\n"
+  return output[:-1]
+
+
 ########################################################################################################################
 ## file
 ########################################################################################################################
@@ -292,9 +386,33 @@ def checkFileName(path, makeDir=False):
     i += 1
 
 
+# Windowsの名前に使えない文字を置き換える
 def escapeFileName(path, repl="_"):
   regex = re.compile("[/:*?\"<>|.]")
   return regex.sub(repl, path)
+
+
+# ディレクトリ配下の全てのファイルのフルパスを返す。
+def getAllFiles(path, include="", exclude="", recursive=True):
+  result = []
+  lt = os.listdir(path)
+  for i in lt:
+    i = os.path.join(path, i)
+    if recursive and os.path.isdir(i):
+      lt += os.listdir(i)
+      continue
+    if exclude != "" and re.search(exclude, i):
+      continue
+    if include == "" or re.search(include, i):
+      result.append(i)
+  return result
+
+
+# return directory, name, extension
+def splitPath(path):
+  directory, name = os.path.split(path)
+  root, ext = os.path.splitext(name)
+  return directory, root, ext
 
 
 ################################################################################
@@ -479,7 +597,7 @@ def outputImage(path, imgData):
     file.write(imgData)
 
 
-def getImage(url, headers, session=None):
+def getImage(url, headers=None, session=None):
   if session is None:
     session = requests.session()
   for _ in range(5):
@@ -503,5 +621,34 @@ def escapePathName(string, char="_"):
   return r2.sub("", temp)
 
 
+# windows: [psutil.REALTIME_PRIORITY_CLASS, psutil.HIGH_PRIORITY_CLASS, psutil.ABOVE_NORMAL_PRIORITY_CLASS, psutil.NORMAL_PRIORITY_CLASS, psutil.BELOW_NORMAL_PRIORITY_CLASS, psutil.IDLE_PRIORITY_CLASS]
+# linux: -20 to 20. max priority is -20
+def setPriority(priority, pid=None):
+  process = psutil.Process(pid)
+  process.nice(priority)
+
+
+################################################################################
+## Random
+################################################################################
+
+
 def getRandom(minN, maxN):
   return random.randrange(minN, maxN)
+
+
+def getRandomStr(string="abcdefghijklmnopqrstuvwxyz", rMin=1, rMax=10):
+  return "".join(random.choices(string, k=random.randint(rMin, rMax)))
+
+
+################################################################################
+##
+################################################################################
+
+
+def confirm(msg="confirm? [y/n] "):
+  result = input(msg).strip().lower()
+  reCheck = re.compile(r"^(yes|y)$")
+  if reCheck.search(result):
+    return True
+  return False

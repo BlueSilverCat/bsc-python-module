@@ -2,6 +2,8 @@ import os
 import os.path
 from EntryInfo import EntryInfo
 
+import pdb
+
 ########################################################################################################################
 ## EntryList
 ########################################################################################################################
@@ -47,15 +49,17 @@ class EntryList:
       result.append(entry)
     return result
 
-  def printTree(self):
-    parentList = []
-    for i in range(len(self.entries)):
-      if self.entries[i].isDir():
-        parentList.append(self.entries[i].path)
-      parent = os.path.dirname(self.entries[i].path)
-      if self.entries[i].isFile() and parent not in parentList and parent != os.path.dirname(self.entries[i - 1].path):
-        print(EntryList.getParentName(parent, self.entries[i].depth - 1, parentList))
-      print(self.entries[i].getIndentedString())
+  def printTree(self, showFile=True):
+    # parentList = []
+    for entry in self.entries:
+      # if entry.isDir():
+      #   parentList.append(entry.path)
+      # parent = os.path.dirname(entry.path)
+      # if entry.isFile() and parent not in parentList and parent != os.path.dirname(self.entries[i - 1].path):
+      #   print(EntryList.getParentName(parent, entry[i].depth - 1, parentList))
+      if not showFile and entry.isFile():
+        continue
+      print(entry.getIndentedString())
 
   @staticmethod
   def getParentName(path, depth, parentList):

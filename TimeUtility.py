@@ -76,3 +76,7 @@ def secToTime(sec):
 # datetime.timedelta(hours=9)は、JST 日本標準時 UTC+0900
 def compareTime(dt1, dt2, delta, timeZone=datetime.timedelta(hours=9)):
   return abs(dt1 - dt2) > abs(delta)
+
+
+def convertUTCtoJST(dt):
+  return dt.astimezone(datetime.timezone(datetime.timedelta(hours=9)))

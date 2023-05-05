@@ -65,11 +65,6 @@ prop = arguments[2];
 return window.getComputedStyle(elem, pseudo).getPropertyValue(prop);
 """
 
-GetStats = """\
-return Hero.infos
-"""
-# Hero.energies
-
 SetCookie = """\
 const cookies = arguments[0];
 let str = "";
@@ -82,13 +77,6 @@ for (const cookie of cookies) {
   }
   document.cookie = str.trim();
 }
-"""
-
-# チート危険
-# Collect.cost = 0;を実行すると動かない。実行するとKobanが減る
-TestCollectRunAll = """\
-Collect.cost = 0;
-Collect.run_all();
 """
 
 Click = """\
@@ -105,28 +93,20 @@ const event = new KeyboardEvent("keyup", {key: "PageDown", code: "PageDown"});
 arguments[0].dispatchEvent(event);
 """
 
-GetSalaryGirls = """\
-let result = []
-for (const [key, value] of Object.entries(girlsDataList)) {
-  if (value.own == true && value.pay_in == 0) {
-    result.push([value.id_girl, value.name, value.class, value.element])
-  }
-}
-return result
-"""
-
-GetGems = """\
-return player_gems_amount
-"""
-
 # const inputEvent = new Event('input');
 # arguments[0].dispatchEvent(inputEvent)
 
-Input = """\
+AsyncInput = """\
 arguments[arguments.length-1]();
 arguments[0].value = arguments[1];
 arguments[0].dispatchEvent(new KeyboardEvent('keyup', {keyCode: 13, key: 'Enter'}));
 """
+
+Input = """\
+arguments[0].value = arguments[1];
+arguments[0].dispatchEvent(new KeyboardEvent('keyup', {keyCode: 13, key: 'Enter'}));
+"""
+
 # arguments[0].dispatchEvent(new KeyboardEvent('keydown', {keyCode: 13, key: 'Enter'}));
 
 DisablePageVisibilityAPI = """\
@@ -169,25 +149,6 @@ document.getElementsByTagName("html")[0].hidden = false;
 #   true
 # );
 # """
-
-Test = """\
-console.log(`Girl=${Girl}`)
-console.log(`GirlSalaryManager=${GirlSalaryManager}`)
-console.log(`Collect=${Collect}`)
-return [Girl, GirlSalaryManager, Collect]
-"""
-
-# ページの切り替えによって読み込まれるので毎回やる必要がある
-# スコープの関係で"window."でないといけないようだ
-DisableMovingStars = """\
-window.Hero.no_glitter = true;
-window.movingStars = () => {};
-"""
-
-# 持っているかの判定をした方が良いが大体の場面で動く
-getGirlsCount = """\
-return Object.keys(girlsDataList).length
-"""
 
 getUserAgent = """\
 return navigator.userAgent

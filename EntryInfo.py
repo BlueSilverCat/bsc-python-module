@@ -1,6 +1,4 @@
 import os.path
-from pathlib import Path
-
 from Sort import NaturalSorter
 
 ########################################################################################################################
@@ -11,7 +9,8 @@ from Sort import NaturalSorter
 class EntryInfo():
 
   def __init__(self, path, depth=0, naturalSort=False):
-    if not os.path.exists(path):
+    # if not os.path.exists(path):
+    if not os.path.lexists(path):  # linuxのシムリンク対策
       print(path)
       raise ValueError
     self.path = os.path.abspath(path)
@@ -23,11 +22,14 @@ class EntryInfo():
     self.suffix = os.path.splitext(self.name)[1]  # "."付き
     self.depth = depth
     self.naturalSort = naturalSort
+    self.childCount = -1
     self.setAttribute()
+    self.setChildCount()
 
   def __repr__(self):
-    # return f"{'  ' * self.depth}{self.attribute}: {self.name}"
-    return f"{self.attribute}: {self.name}"
+    if self.isFile():
+      return f"{self.attribute}: {self.name}"
+    return f"{self.attribute}: {self.name} {self.childCount}"
 
   def __lt__(self, other):
     if self.attribute == other.attribute:
@@ -80,3 +82,8 @@ class EntryInfo():
       return 4
     else:
       return 0
+
+  def setChildCount(self):
+    if self.isFile() or not os.path.exists(self.path):  # linuxのシムリンク対策
+      return
+    self.childCount = len(os.listdir(self.path))

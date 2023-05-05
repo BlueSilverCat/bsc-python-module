@@ -1,4 +1,10 @@
 TesseractPath = r"C:\Program Files\Tesseract-OCR"
 IrfanviewPath = r"C:\Program Files\IrfanView\i_view64.exe"
 SevenZipPath = r"C:\Program Files\7-Zip\7z.exe"
-SeleniumPath = r"D:\Common\Application\geckodriver\geckodriver.exe"
+# SeleniumPath = r"D:\Common\Application\geckodriver\geckodriver.exe"
+GeckoDriverPath = r"D:\Common\Application\geckodriver\geckodriver.exe"
+FirefoxPath = r"C:\Program Files\Mozilla Firefox\firefox.exe"
+FFmpeg = r"D:\Common\Application\ffmpeg\bin\ffmpeg.exe"
+FFprobe = r"D:\Common\Application\ffmpeg\bin\ffprobe.exe"
+
+WorkPath = r"D:\Common\work\python"

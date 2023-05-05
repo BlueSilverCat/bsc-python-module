@@ -36,7 +36,7 @@ def printExecutionTime(func):
   return wrapper
 
 
-def stopwatchPrintSE(func):
+def printStartEndExecuteTime(func):
 
   @functools.wraps(func)
   def wrapper(*args, **kwargs):

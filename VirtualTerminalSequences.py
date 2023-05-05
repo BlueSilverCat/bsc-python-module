@@ -1,5 +1,6 @@
 import os
 from ctypes import wintypes, byref
+
 if os.name == "nt":
   from ctypes import windll
 
@@ -34,6 +35,7 @@ class VTS:
     "BRIGHT_CYAN": "\x1b[96m",
     "BRIGHT_WHITE": "\x1b[97m",
   }
+  FC = FOREGROUND_COLORS
   BACKGROUND_COLORS = {
     "BLACK": "\x1b[40m",
     "RED": "\x1b[41m",
@@ -53,6 +55,7 @@ class VTS:
     "BRIGHT_CYAN": "\x1b[106m",
     "BRIGHT_WHITE": "\x1b[107m",
   }
+  BC = BACKGROUND_COLORS
 
   INVALID_HANDLE_VALUE = -1
   STD_OUTPUT_HANDLE = -11
@@ -85,68 +88,99 @@ class VTS:
     return isinstance(x, tuple) or isinstance(x, list)
 
   @staticmethod
-  def printColored(msg, fc="DEFAULT_COLOR", bc="DEFAULT_COLOR"):
-    print(VTS.getColorMessage(msg, fc, bc))
-
-  @staticmethod
-  def getForegroundColor(value="DEFAULT_COLOR"):
-    if isinstance(value, str):
-      return VTS._getForegroundColorName(value)
-    elif isinstance(value, int):
-      return VTS._getForegroundColorNumber(value)
-    elif VTS.isTupleOrList(value) and len(value) == 3:
-      return VTS._getForegroundColorRGB(*value)
-    else:
-      return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
-
-  @staticmethod
-  def getBackgroundColor(value="DEFAULT_COLOR"):
-    if isinstance(value, str):
-      return VTS._getBackgroundColorName(value)
-    elif isinstance(value, int):
-      return VTS._getBackgroundColorNumber(value)
-    elif VTS.isTupleOrList(value) and len(value) == 3:
-      return VTS._getBackgroundColorRGB(*value)
-    else:
-      return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
-
-  @staticmethod
-  def _getForegroundColorName(name="DEFAULT_COLOR"):
+  def exchange(name):
     name = name.upper()
+    match name:
+      case "BK":
+        return "BLACK"
+      case "R":
+        return "RED"
+      case "G":
+        return "GREEN"
+      case "Y":
+        return "YELLOW"
+      case "B":
+        return "BLUE"
+      case "M":
+        return "MAGENTA"
+      case "C":
+        return "CYAN"
+      case "W":
+        return "WHITE"
+      case "GY":
+        return "GRAY"
+      case "BR" | "B_R":
+        return "BRIGHT_RED"
+      case "BG" | "B_G":
+        return "BRIGHT_GREEN"
+      case "BY" | "B_Y":
+        return "BRIGHT_YELLOW"
+      case "BB" | "B_B":
+        return "BRIGHT_BLUE"
+      case "BM" | "_BM":
+        return "BRIGHT_MAGENTA"
+      case "BC" | "BC":
+        return "BRIGHT_CYAN"
+      case "BW" | "BW":
+        return "BRIGHT_WHITE"
+      case _:
+        return name
+
+  @staticmethod
+  def printColored(msg, fc="DEFAULT_COLOR", bc="DEFAULT_COLOR", end="\n"):
+    print(VTS.getColorMessage(msg, fc, bc), end=end)
+
+  # lt = "[(msg, fc, bc), (msg, fc, bc), ...]""
+  @staticmethod
+  def printColoredList(lt, end="\n"):
+    for data in lt:
+      print(VTS.getColorMessage(*data), end="")
+    print("", end=end)
+
+  @staticmethod
+  def getColor(value="DEFAULT_COLOR", isBc=False):
+    if isinstance(value, str):
+      return VTS._getColorName(value, isBc)
+    elif isinstance(value, int):
+      return VTS._getColorNumber(value, isBc)
+    elif VTS.isTupleOrList(value) and len(value) == 3:
+      return VTS._getColorRGB(*value, isBc)
+    else:
+      return VTS._getDefaultColor(isBc)
+
+  @staticmethod
+  def _getDefaultColor(isBc=False):
+    if isBc:
+      return VTS.BACKGROUND_COLORS["DEFAULT_COLOR"]
+    return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
+
+  @staticmethod
+  def _getColorName(name="DEFAULT_COLOR", isBc=False):
+    name = name.upper()
+    name = VTS.exchange(name)
+    if isBc:
+      return VTS.BACKGROUND_COLORS.get(name, VTS.BACKGROUND_COLORS["DEFAULT_COLOR"])
     return VTS.FOREGROUND_COLORS.get(name, VTS.FOREGROUND_COLORS["DEFAULT_COLOR"])
 
   @staticmethod
-  def _getBackgroundColorName(name="DEFAULT_COLOR"):
-    name = name.upper()
-    return VTS.BACKGROUND_COLORS.get(name, VTS.BACKGROUND_COLORS["DEFAULT_COLOR"])
-
-  @staticmethod
-  def _getForegroundColorNumber(n):
-    if n >= 0 and n <= 255:
-      return f"\x1b[38;5;{n}m"
-    return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
-
-  @staticmethod
-  def _getForegroundColorRGB(r, g, b):
-    if r >= 0 and r <= 255 and g >= 0 and g <= 255 and b >= 0 and b <= 255:
-      return f"\x1b[38;2;{r};{g};{b}m"
-    return VTS.FOREGROUND_COLORS["DEFAULT_COLOR"]
-
-  @staticmethod
-  def _getBackgroundColorNumber(n):
-    if n >= 0 and n <= 255:
+  def _getColorNumber(n, isBc=False):
+    if n < 0 and n > 255:
+      return VTS._getDefaultColor(isBc)
+    if isBc:
       return f"\x1b[48;5;{n}m"
-    return VTS.BACKGROUND_COLORS["DEFAULT_COLOR"]
+    return f"\x1b[38;5;{n}m"
 
   @staticmethod
-  def _getBackgroundColorRGB(r, g, b):
-    if r >= 0 and r <= 255 and g >= 0 and g <= 255 and b >= 0 and b <= 255:
+  def _getColorRGB(r, g, b, isBc=False):
+    if r < 0 and r > 255 and g < 0 and g > 255 and b < 0 and b > 255:
+      return VTS._getDefaultColor(isBc)
+    if isBc:
       return f"\x1b[48;2;{r};{g};{b}m"
-    return VTS.BACKGROUND_COLORS["DEFAULT_COLOR"]
+    return f"\x1b[38;2;{r};{g};{b}m"
 
   @staticmethod
   def getColorMessage(msg, fc="DEFAULT_COLOR", bc="DEFAULT_COLOR", reset=True):
-    msg = f"{VTS.getForegroundColor(fc)}{VTS.getBackgroundColor(bc)}{msg}"
+    msg = f"{VTS.getColor(fc, False)}{VTS.getColor(bc, True)}{msg}"
     if not reset:
       return msg
     return f"{msg}{VTS.RESET}"
@@ -174,8 +208,8 @@ class VTS:
 
   @staticmethod
   def testColor():
-    for kBc, vBc in VTS.BACKGROUND_COLORS.items():
-      for kFc, vFc in VTS.FOREGROUND_COLORS.items():
+    for kBc, _vBc in VTS.BACKGROUND_COLORS.items():
+      for kFc, _vFc in VTS.FOREGROUND_COLORS.items():
         string = VTS.getColorMessage(f"{kFc:<14}, {kBc:<14}", kFc, kBc)
         print(string)
     VTS.reset()
